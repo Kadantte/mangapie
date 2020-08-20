@@ -125,6 +125,18 @@ return [
     'log_level' => env('APP_LOG_LEVEL', 'debug'),
 
     /*
+     * This is used by the app to send the correct headers for streaming files.
+     *
+     * Currently supported: nginx, apache
+     */
+    'web_server' => env('APP_WEB_SERVER', 'nginx'),
+
+    /*
+     * This determines whether or not emails are to be sent for notifications.
+     */
+    'mail_notifications' => ENV('APP_MAIL_NOTIFICATIONS', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Autoloaded Service Providers
     |--------------------------------------------------------------------------

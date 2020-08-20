@@ -21,9 +21,20 @@
                 <div class="col-12 text-center">
                     <h3 class="mb-3">
                         <strong>{{ $manga->name }}</strong>
+
+                        @can('update-series', $manga)
+                            {{ Form::open(['action' => ['MangaEditController@refreshMetadata', $manga],
+                                           'class' => 'd-inline-flex m-0 p-0',
+                                           'style' => 'vertical-align:middle;',
+                                           'title' => 'Refresh series metadata']) }}
+                            <button class="btn text-primary" type="submit">
+                                <span class="fa fa-refresh"></span>
+                            </button>
+                            {{ Form::close() }}
+                        @endcan
                     </h3>
 
-                    {{--@if ($user->admin || $user->maintainer)--}}
+                    {{--@if ($user->hasRole('Administrator') || $user->hasRole('Editor'))--}}
                     {{--<a href="{{ action('MangaEditController@covers', [$manga]) }}" style="position: relative; left: 50%;">--}}
                     {{--<span class="fa fa-edit"></span>--}}
                     {{--</a>--}}
@@ -43,6 +54,17 @@
                 <div class="col-12">
                     <h1 class="mb-3">
                         <strong>{{ $manga->name }}</strong>
+
+                        @can('update-series', $manga)
+                            {{ Form::open(['action' => ['MangaEditController@refreshMetadata', $manga],
+                                           'class' => 'd-inline-flex m-0 p-0',
+                                           'style' => 'vertical-align:middle;',
+                                           'title' => 'Refresh series metadata']) }}
+                            <button class="btn text-primary" type="submit">
+                                <span class="fa fa-refresh"></span>
+                            </button>
+                            {{ Form::close() }}
+                        @endcan
                     </h1>
 
                     <div class="row">
@@ -71,7 +93,7 @@
                         </div>
 
                         {{--<div class="col-9">--}}
-                        {{--@if ($user->admin || $user->maintainer)--}}
+                        {{--@if ($user->hasRole('Administrator') || $user->hasRole('Editor'))--}}
                         {{--<a href="{{ action('MangaEditController@covers', [$manga]) }}">--}}
                         {{--<span class="fa fa-edit fa-2x"></span>--}}
                         {{--</a>--}}
@@ -94,6 +116,9 @@
                         </div>
                         @endadmin
 
+                        <div class="col-12 mb-3">
+                            @include ('manga.shared.information.external')
+                        </div>
 
                         <div class="col-12 mb-3">
                             @include ('manga.shared.information.description')

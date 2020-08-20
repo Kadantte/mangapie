@@ -101,18 +101,45 @@ class Scanner
     }
 
     /**
-     * Matches and returns a multi-dimensional array that holds the volume and/or chapter strings in a string.
-     * For example, "Soredemo Machi wa Mawatteiru - c122-130 (v16) (end) [CR].zip" will
-     * return => [["c122-130","c","","","c","","-130",],["v16","v","v",],]
+     * Matches and returns an array that holds the volume and/or chapter strings.
      *
      * @param string $str
      * @return array|bool
      */
     public static function getVolumesAndChapters(string $str)
     {
-        $pattern = "/((v|vol(ume)?)|(c|ch(apter)?))[ \.\_\-]*\d+([ \.\_\-]\d+)?/i";
+        $pattern = "/((v|vol(ume)?)|(c|ch(apter)?)|(omnibus?))[ \.\_\-]*\d+([ \.\_\-]\d+)?/i";
         $matches = [];
 
-        return preg_match_all($pattern, $str, $matches, PREG_SET_ORDER) !== false ? $matches : false;
+        /* Using PREG_PATTERN_ORDER will return all the matches we need in the first array index.
+         *
+         * Example: 'Soredemo Machi wa Mawatteiru - c122-130 (v16) (end) [CR].zip' will return ["c122-130", "v16"]
+         */
+        $matchResult = preg_match_all($pattern, $str, $matches, PREG_PATTERN_ORDER);
+
+        return $matchResult !== false ? $matches[0] : false;
+    }
+
+    /**
+     * Simplifies the given name into volumes and chapters.
+     *
+     * @param string $name
+     * @return string
+     */
+    public static function simplifyName(string $name)
+    {
+        $volCh = self::getVolumesAndChapters($name);
+        // If there is no volume or chapter in the name, or if the parsing failed
+        // then just use the archive name :shrug:
+        if (empty($volCh)) {
+            $nameVolCh = $name;
+        } else {
+            $nameVolCh = '';
+            foreach ($volCh as $part) {
+                $nameVolCh .= $part . ' ';
+            }
+        }
+
+        return $nameVolCh;
     }
 }

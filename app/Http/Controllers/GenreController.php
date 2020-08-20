@@ -2,43 +2,50 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 use App\Genre;
-use App\GenreReference;
-use App\Library;
-use App\LibraryPrivilege;
+use App\Manga;
+use App\User;
 
 class GenreController extends Controller
 {
+    /**
+     * @param Genre $genre
+     * @return mixed
+     */
     public function index(Genre $genre)
     {
-        $page = \Input::get('page');
+        $request = request();
+        /** @var User $user */
+        $user = $request->user();
+        $sort = $request->input('sort');
+        $libraries = $user->libraries()->toArray();
+        $perPage = 18;
+        $name = $genre->name;
 
-        $libraryIds = LibraryPrivilege::getIds();
+        /** @var Builder $items */
+        $items = Manga::whereHas('genres', function (Builder $query) use ($name) {
+            $query->select(['genre_id'])->where('name', $name);
+        });
 
-        $references = GenreReference::where('genre_id', $genre->getId())
-            ->get()
-            ->load('manga')
-            ->filter(function ($reference) use ($libraryIds) {
-                return in_array($reference->manga->library->id, $libraryIds);
-            });
-
-        $results = [];
-        foreach ($references as $reference) {
-            if ($reference->manga->getLibraryId())
-                array_push($results, $reference->manga);
-        }
-
-        $results = collect($results)->sortBy('name');
-
-        $mangaList = new LengthAwarePaginator($results->forPage($page, 18), $results->count(), 18);
-        $mangaList->onEachSide(1)->withPath(\Request::getBaseUrl());
+        // filter out the items the user cannot access
+        $items = $items->whereIn('library_id', $libraries)
+            ->orderBy('name', 'asc')
+            ->with([
+                'authors',
+                'artists',
+                'favorites',
+                'votes'
+            ])
+            ->paginate($perPage, ['id', 'name'])
+            ->appends($request->input());
 
         return view('home.genre')
-            ->with('header', 'Genre: ' . $genre->getName() . ' (' . $results->count() . ')')
+            ->with('header', 'Genre: ' . $name . ' (' . $items->total() . ')')
             ->with('genre', $genre)
-            ->with('manga_list', $mangaList);
+            ->with('manga_list', $items)
+            ->with('sort', $sort);
     }
 }

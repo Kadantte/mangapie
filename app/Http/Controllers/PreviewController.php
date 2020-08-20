@@ -6,8 +6,6 @@ use App\Archive;
 use App\Manga;
 use App\Preview;
 
-use Illuminate\Http\Request;
-
 class PreviewController extends Controller
 {
     public function index(Manga $manga, Archive $archive)
@@ -19,31 +17,55 @@ class PreviewController extends Controller
             ->with('pageCount', $pageCount);
     }
 
+    /**
+     * @param Manga $manga
+     * @param Archive $archive
+     * @param int $page
+     * @return \Illuminate\Http\Response
+     *
+     * @throws \Exception
+     */
     public function small(Manga $manga, Archive $archive, int $page)
     {
-        if (Preview::exists($manga, $archive, $page))
-            return Preview::response($manga, $archive, $page);
+        $cover = new Preview($manga, $archive, $page);
+        if (! $cover->exists()) {
+            $image = $manga->getImage($archive, $page);
+            if ($image) {
+                $cover->put($image['contents']);
+            }
+        }
 
-        $image = $manga->getImage($archive, $page);
-        if ($image === false)
-            return response()->make('', 404);
-
-        Preview::save($image['contents'], $manga, $archive, $page);
-
-        return Preview::response($manga, $archive, $page);
+        return $cover->response();
     }
 
+    /**
+     * @param Manga $manga
+     * @param Archive $archive
+     * @param int $page
+     * @return \Illuminate\Http\Response
+     *
+     * @throws \Exception
+     */
     public function medium(Manga $manga, Archive $archive, int $page)
     {
-        if (Preview::exists($manga, $archive, $page, false))
-            return Preview::response($manga, $archive, $page, false);
+        $cover = new Preview($manga, $archive, $page, false);
+        if (! $cover->exists()) {
+            $image = $manga->getImage($archive, $page);
+            if ($image) {
+                $cover->put($image['contents']);
+            }
+        }
 
-        $image = $manga->getImage($archive, $page);
-        if ($image === false)
-            return response()->make('', 404);
+        return $cover->response();
+    }
 
-        Preview::save($image['contents'], $manga, $archive, $page, false);
+    public function destroy()
+    {
+        $deleted = Preview::delete();
+        $response = redirect()->back();
 
-        return Preview::response($manga, $archive, $page, false);
+        return $deleted ?
+            $response->with('success', 'All previews have been deleted.') :
+            $response->withErrors('Unable to delete all previews.');
     }
 }

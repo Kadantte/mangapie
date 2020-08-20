@@ -2,30 +2,50 @@
 
 namespace App\Http\Controllers;
 
-use App\LibraryPrivilege;
 use App\Manga;
 use App\Person;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class PersonController extends Controller
 {
-    public function index(Person $person)
+    use AuthorizesRequests;
+
+    public function __construct()
     {
-        $page = request()->get('page');
+        $this->authorizeResource(Person::class, 'person');
+    }
 
-        $libraryIds = LibraryPrivilege::getIds();
+    /**
+     * @param Person $person
+     * @return mixed
+     */
+    public function show(Person $person)
+    {
+        $request = request();
+        $sort = $request->input('sort', 'asc');
+        $perPage = 18;
 
-        $results = $person->manga()->filter(function (Manga $manga) use ($libraryIds) {
-            return in_array($manga->library->id, $libraryIds);
-        });
-
-        $manga_list = new LengthAwarePaginator($results->forPage($page, 18), $results->count(), 18);
-        $manga_list->withPath(request()->getBaseUrl());
+        $libraries = $request->user()->libraries()->toArray();
+        /** @var LengthAwarePaginator $items */
+        $items = $person->manga()->whereIn('library_id', $libraries)
+            ->orderBy('name', 'asc')
+            ->with([
+                'authors',
+                'artists',
+                'favorites',
+                'votes'
+            ])
+            ->paginate($perPage, ['id', 'name'])
+            ->appends($request->input());
 
         return view('home.person')
-            ->with('header', 'Person: ' . $person->getName() . ' (' . $results->count() . ')')
+            ->with('header', 'Person: ' . $person->name . ' (' . $items->total() . ')')
             ->with('person', $person)
-            ->with('manga_list', $manga_list);
+            ->with('manga_list', $items)
+            ->with('sort', $sort);
     }
+
+    // TODO: Add other resource methods
 }

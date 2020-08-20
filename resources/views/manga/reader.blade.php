@@ -5,10 +5,14 @@
         $volCh = App\Scanner::getVolumesAndChapters($archive->name);
         // If there is no volume or chapter in the name, or if the parsing failed
         // then just use the archive name :shrug:
-        if (empty($volCh) || empty($volCh[0]))
+        if (empty($volCh)) {
             $nameVolCh = $archive->name;
-        else
-            $nameVolCh = $volCh[0][0];
+        } else {
+            $nameVolCh = '';
+            foreach ($volCh as $part) {
+                $nameVolCh .= $part . ' ';
+            }
+        }
     @endphp
 
     {{ $manga->name }} - {{ $nameVolCh }}
@@ -80,7 +84,7 @@
 
                 <div class="modal-header bg-dark">
                     <h5 class="modal-title">
-                        <a href="{{ URL::action('MangaController@index', [$manga]) }}">{{ $manga->name }}</a> - {{ $nameVolCh }}
+                        <a href="{{ URL::action('MangaController@show', [$manga]) }}">{{ $manga->name }}</a> - {{ $nameVolCh }}
                     </h5>
                 </div>
 
@@ -253,7 +257,7 @@
                 if (g_previousArchiveUrl !== undefined) {
                     window.location = g_previousArchiveUrl;
                 } else {
-                    alert("There is no page or archive before this one.");
+                    window.location = '{{ URL::action('MangaController@show', [$manga]) }}';
                 }
 
                 return;
@@ -292,7 +296,7 @@
                 if (g_nextArchiveUrl !== undefined) {
                     window.location = g_nextArchiveUrl;
                 } else {
-                    alert("There is no page or archive after this one.");
+                    window.location = '{{ URL::action('MangaController@show', [$manga]) }}';
                 }
 
                 return;

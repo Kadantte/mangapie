@@ -5,10 +5,14 @@
         $volCh = App\Scanner::getVolumesAndChapters($archive->name);
         // If there is no volume or chapter in the name, or if the parsing failed
         // then just use the archive name :shrug:
-        if (empty($volCh) || empty($volCh[0]))
+        if (empty($volCh)) {
             $nameVolCh = $archive->name;
-        else
-            $nameVolCh = $volCh[0][0];
+        } else {
+            $nameVolCh = '';
+            foreach ($volCh as $part) {
+                $nameVolCh .= $part . ' ';
+            }
+        }
     @endphp
 
     Preview &middot; {{ $manga->name }} &middot; {{ $nameVolCh }}
@@ -24,7 +28,7 @@
 
         <div class="row mt-3">
             <div class="col">
-                <h3><a href="{{ URL::action('MangaController@index', [$manga]) }}">{{ $manga->name }}</a> - Preview - {{ $nameVolCh }}</h3>
+                <h3><a href="{{ URL::action('MangaController@show', [$manga]) }}">{{ $manga->name }}</a> - Preview - {{ $nameVolCh }}</h3>
             </div>
         </div>
 

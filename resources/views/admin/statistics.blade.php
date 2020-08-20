@@ -10,6 +10,7 @@
         <li class="nav-item"><a href="{{ URL::action('AdminController@config') }}" class="nav-link">Config</a></li>
         <li class="nav-item"><a href="{{ URL::action('AdminController@libraries') }}" class="nav-link">Libraries</a></li>
         <li class="nav-item"><a href="{{ URL::action('AdminController@users') }}" class="nav-link">Users</a></li>
+        <li class="nav-item"><a href="{{ URL::action('RoleController@index') }}" class="nav-link">Roles</a></li>
     </ul>
 @endsection
 
@@ -19,36 +20,62 @@
         <div class="col-12 col-md-6 col-lg-4">
             <h4><b>Users</b></h4>
 
-            <label>Number of admins:</label> {{ \App\User::admins('id')->count() }} <br>
-            <label>Number of maintainers:</label> {{ \App\User::maintainers('id')->count() }} <br>
-            <label>Number of users:</label> {{ \App\User::all('id')->count() }}
+            <label>Number of Admins:</label> {{ \App\User::administrators()->count() }} <br>
+            <label>Number of Moderators:</label> {{ \App\User::moderators()->count() }}<br>
+            <label>Number of Editors:</label> {{ \App\User::editors()->count() }} <br>
+            <label>Number of Users:</label> {{ \App\User::all()->count() }}
 
             <hr>
         </div>
 
-        <div class="col-12 col-md-6 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-4 text-break">
             <h4><b>Avatars</b></h4>
 
             <label>Size:</label> {{ App\Archive::convertSizeToReadable(App\Avatar::size()) }}<br>
-            <label>Path:</label> {{ App\Avatar::disk()->path('') }}
+            <label>Path:</label> {{ \Storage::disk('avatars')->path('') }}
 
             <hr>
         </div>
 
-        <div class="col-12 col-md-6 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-4 text-break">
             <h4><b>Covers</b></h4>
 
             <label>Size:</label> {{ App\Archive::convertSizeToReadable(App\Cover::size()) }}<br>
-            <label>Path:</label> {{ App\Cover::disk()->path('') }}
+            <label>Path:</label> {{ \Storage::disk('covers')->path('') }}
 
-            <hr>
+            <div class="row mt-3">
+                <div class="col">
+                    {{ Form::open(['action' => 'CoverController@destroy', 'method' => 'delete']) }}
+                    <button class="btn btn-danger form-control">
+                        <span class="fa fa-trash"></span>&nbsp;Wipe
+                    </button>
+                    {{ Form::close() }}
+                </div>
+            </div>
         </div>
 
-        <div class="col-12 col-md-6 col-lg-4">
+        <div class="col-12 col-md-6 col-lg-4 text-break">
+            <h4><strong>Previews</strong></h4>
+
+            <label>Size:</label> {{ App\Archive::convertSizeToReadable(App\Preview::size()) }}<br>
+            <label>Path:</label> {{ \Storage::disk('previews')->path('') }}
+
+            <div class="row mt-3">
+                <div class="col">
+                    {{ Form::open(['action' => 'PreviewController@destroy', 'method' => 'delete']) }}
+                    <button class="btn btn-danger form-control">
+                        <span class="fa fa-trash"></span>&nbsp;Wipe
+                    </button>
+                    {{ Form::close() }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4 text-break">
             <h4><b>Images</b></h4>
 
             <label>Size:</label> {{ App\Archive::convertSizeToReadable(App\Image::size()) }}<br>
-            <label>Path:</label> {{ App\Image::disk()->path('') }}
+            <label>Path:</label> {{ \Storage::disk('images')->path('') }}
 
             <div class="row mt-3">
                 <div class="col-6">

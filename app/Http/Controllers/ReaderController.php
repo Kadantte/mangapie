@@ -8,11 +8,19 @@ use App\Manga;
 use App\Image;
 use App\ImageArchive;
 use App\ReaderHistory;
+use App\User;
 
 class ReaderController extends Controller
 {
     public function index(Manga $manga, Archive $archive, int $page)
     {
+        $notificationId = request()->query('notification');
+        if (! empty($notificationId)) {
+            \Auth::user()->unreadNotifications()
+                ->where('id','=', $notificationId)
+                ->forceDelete();
+        }
+
         $imgArchive = ImageArchive::open($manga->path . DIRECTORY_SEPARATOR . $archive->name);
         if ($imgArchive === false)
             return response()->make(null, 400);
@@ -30,9 +38,29 @@ class ReaderController extends Controller
             ->with('pageCount', $pageCount);
     }
 
+    /**
+     * @param Manga $manga
+     * @param Archive $archive
+     * @param int $page
+     * @return \Illuminate\Http\Response
+     *
+     * @throws \Exception
+     */
     public function image(Manga $manga, Archive $archive, int $page)
     {
-        return Image::response($manga, $archive, $page);
+        if (\Cache::tags(['config', 'image', 'extract'])->get('enabled', false) === true) {
+            $image = new Image($manga, $archive, $page);
+            $image->extract();
+
+            return $image->response();
+        } else {
+            $image = $manga->getImage($archive, $page);
+
+            return response()->make($image['contents'], 200, [
+                'Content-Length' => $image['size'],
+                'Content-Type' => $image['mime']
+            ]);
+        }
     }
 
     public function putReaderHistory(PutReaderHistoryRequest $request)

@@ -5,33 +5,34 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UserSettings\PatchPasswordRequest;
 use App\Http\Requests\UserSettings\PatchReaderDirectionRequest;
 use App\Http\Requests\UserSettings\PutAboutRequest;
+use App\Http\Requests\UserSettings\PutDisplayRequest;
 
 class UserSettingsController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        $user = \Auth::user();
 
         return view('settings.index')->with('user', $user);
     }
 
     public function account()
     {
-        $user = auth()->user();
+        $user = \Auth::user();
 
         return view('settings.account')->with('user', $user);
     }
 
     public function visuals()
     {
-        $user = auth()->user();
+        $user = \Auth::user();
 
         return view('settings.visuals')->with('user', $user);
     }
 
     public function profile()
     {
-        $user = auth()->user();
+        $user = \Auth::user();
 
         return view('settings.profile')->with('user', $user);
     }
@@ -77,5 +78,16 @@ class UserSettingsController extends Controller
         session()->flash('success', 'Successfully updated password.');
 
         return redirect()->back();
+    }
+
+    public function putDisplay(PutDisplayRequest $request)
+    {
+        $display = $request->get('display');
+
+        $request->user()->update([
+            'display' => $display
+        ]);
+
+        return response()->make();
     }
 }

@@ -2,41 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Filesystem\Filesystem;
-
-use Symfony\Component\HttpFoundation\StreamedResponse;
-
-use \App\Manga;
-use \App\Library;
-use \App\LibraryPrivilege;
-use \App\User;
 
 class HomeController extends Controller
 {
+    /**
+     * Gets the view for the home page.
+     *
+     * @param string $sort
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
     public function index()
     {
         $user = \Auth::user();
+        $sort = request()->query('sort', 'asc');
+        $library = request()->query('library');
+        $perPage = 18;
 
-        if ($user->isAdmin()) {
-            $mangaList = Manga::orderBy('name', 'asc')
-                              ->paginate(18);
-        } else {
-            $libraryIds = [];
-            $user->privileges->each(function (LibraryPrivilege $privilege) use (&$libraryIds) {
-                $libraryIds[] = $privilege->getLibraryId();
-            });
-
-            $mangaList = Manga::whereIn('library_id', $libraryIds)
-                              ->orderBy('name', 'asc')
-                              ->paginate(18);
+        $items = $user->manga();
+        if (! empty($library)) {
+            $items = $items->whereIn('library_id', [$library]);
         }
 
-        $mangaList->load('authorReferences.author', 'favorites', 'votes');
-        $mangaList->onEachSide(1)
-                  ->withPath(\Config::get('app.url'));
+        $items = $items->orderBy('name', $sort)
+            ->with([
+                'favorites',
+                'votes',
+                'authors',
+                'artists'
+            ])
+            ->paginate($perPage, ['id', 'name'])
+            ->appends(request()->input());
 
-        return view('home.index')->with('manga_list', $mangaList);
+        return view('home.index')
+            ->with('manga_list', $items)
+            ->with('sort', $sort);
     }
 }

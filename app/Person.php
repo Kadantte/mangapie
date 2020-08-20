@@ -2,8 +2,9 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Person extends Model
 {
@@ -23,18 +24,26 @@ class Person extends Model
      * Gets a Collection of the manga a person is involved with.
      * Includes both author and artist.
      *
-     * @return Collection
+     * @return Builder
      */
     public function manga()
     {
-        // TODO: Optimize into a single query ?
+        $name = $this->name;
 
-        $whereAuthor = $this->mangaWhereAuthor;
-        $whereArtist = $this->mangaWhereArtist;
-
-        return $whereAuthor->merge($whereArtist)->unique('id');
+        return Manga::whereHas('authors', function (Builder $query) use ($name) {
+                $query->select(['author_id', 'name'])->where('name', $name);
+            })
+            ->orWhereHas('artists', function (Builder $query) use ($name) {
+                $query->select(['artist_id', 'name'])->where('name', $name);
+            })
+            ->distinct();
     }
 
+    /**
+     * Gets a hasManyThrough relationship of the manga the person has authored.
+     *
+     * @return HasManyThrough
+     */
     public function mangaWhereAuthor()
     {
         return $this->hasManyThrough(
@@ -46,6 +55,11 @@ class Person extends Model
             'manga_id');
     }
 
+    /**
+     * Gets a hasManyThrough relationship of the manga the person has illustrated.
+     *
+     * @return HasManyThrough
+     */
     public function mangaWhereArtist()
     {
         return $this->hasManyThrough(

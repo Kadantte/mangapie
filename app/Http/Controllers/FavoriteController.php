@@ -4,32 +4,69 @@ namespace App\Http\Controllers;
 
 use App\Favorite;
 use App\Http\Requests\Favorite\FavoriteAddRequest;
-use App\Http\Requests\Favorite\FavoriteRemoveRequest;
+
+use App\IntlString;
 use App\Manga;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class FavoriteController extends Controller
 {
+
+    /**
+     * Gets the view for the favorites.
+     * Do not perform resource based authorization.
+     *
+     * @return mixed
+     */
     public function index()
     {
         $user = \Auth::user();
-        $favorites = $user->favorites->load('manga');
-        $total = $favorites->count();
-        $favoriteIds = [];
+        $sort = request()->input('sort', 'asc');
+        $library = request()->query('library');
+        $page = request()->get('page');
+        $perPage = 18;
 
-        $favorites->each(function (Favorite $favorite) use (&$favoriteIds) {
-            $favoriteIds[] = $favorite->manga->getId();
+        /** @var Builder $favorites */
+        $favorites = $user->favorites()
+            ->with([
+                'manga',
+                'manga.favorites',
+                'manga.votes',
+                'manga.authorReferences',
+                'manga.authorReferences.author'
+            ]);
+
+        if (! empty($library)) {
+            $favorites = $favorites->whereHas('manga', function (Builder $query) use ($library) {
+                $query->where('library_id', $library);
+            });
+        }
+
+        /** @var Collection $collection */
+        $collection = $favorites->get()->transform(function (Favorite $favorite) {
+            return $favorite->manga;
         });
 
-        $favoriteList = Manga::whereIn('id', $favoriteIds)
-                             ->orderBy('name', 'asc')
-                             ->paginate(18);
+        $collection = $collection->sort(function (Manga $left, Manga $right) use ($sort) {
+            if ($sort === 'asc') {
+                return IntlString::strcmp($left->name, $right->name) > 0;
+            } else {
+                return IntlString::strcmp($left->name, $right->name) < 0;
+            }
+        });
 
-        $favoriteList->onEachSide(1)->withPath(\Config::get('app.url'));
+        // TODO: Should favorites to a library one can no longer access be viewable?
+
+        $manga_list = new LengthAwarePaginator($collection->forPage($page, $perPage), $collection->count(), $perPage);
+        $manga_list->appends(request()->input());
 
         return view('favorites.index')
-            ->with('manga_list', $favoriteList)
-            ->with('header', 'Favorites: (' . $total . ')')
-            ->with('total', $total);
+            ->with('manga_list', $manga_list)
+            ->with('sort', $sort)
+            ->with('header', 'Favorites: (' . $favorites->count() . ')')
+            ->with('total', $favorites->count());
     }
 
     public function create(FavoriteAddRequest $request)
@@ -46,16 +83,10 @@ class FavoriteController extends Controller
         return redirect()->back();
     }
 
-    public function delete(FavoriteRemoveRequest $request)
+    public function destroy(Favorite $favorite)
     {
-        $favorite = Favorite::find($request->get('favorite_id'));
-        if ($favorite->user->id !== \Auth::id())
-            return redirect()->back(403);
-
         $favorite->forceDelete();
 
-        session()->flash('success', 'You have unfavorited this manga.');
-
-        return redirect()->back();
+        return \Redirect::back()->with('success', 'You have unfavorited this manga.');
     }
 }
